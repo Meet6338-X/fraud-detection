@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a3e;
+            --bg-card: #252550;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0c0;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d26a;
+            --accent-yellow: #ffd93d;
+            --accent-red: #ff4757;
+            --accent-purple: #a855f7;
+            --border-color: #3a3a5e;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .notification-btn:hover {
+            background: var(--border-color);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent-red);
+            color: white;
+            font-size: 11px;
+            padding: 3px 7px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 85px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+        }
+
+        .nav-section {
+            margin-bottom: 30px;
+        }
+
+        .nav-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            padding: 0 20px;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(77, 166, 255, 0.1);
+            color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon.blue {
+            background: rgba(77, 166, 255, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .stat-icon.green {
+            background: rgba(0, 210, 106, 0.15);
+            color: var(--accent-green);
+        }
+
+        .stat-icon.yellow {
+            background: rgba(255, 217, 61, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .stat-icon.red {
+            background: rgba(255, 71, 87, 0.15);
+            color: var(--accent-red);
+        }
+
+        .stat-icon.purple {
+            background: rgba(168, 85, 247, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .stat-trend.up {
+            color: var(--accent-green);
+        }
+
+        .stat-trend.down {
+            color: var(--accent-red);
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-btn {
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .chart-btn:hover,
+        .chart-btn.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        .chart-container.large {
+            height: 350px;
+        }
+
+        /* Tables */
+        .table-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 15px;
+            width: 300px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: var(--border-color);
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(77, 166, 255, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 18px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .txn-id {
+            font-family: monospace;
+            color: var(--accent-blue);
+        }
+
+        .amount {
+            font-weight: 600;
+            font-family: 'Consolas', monospace;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(0, 210, 106, 0.15);
+            color: var(--accent-green);
+        }
+
+        .badge-warning {
+            background: rgba(255, 217, 61, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .badge-danger {
+            background: rgba(255, 71, 87, 0.15);
+            color: var(--accent-red);
+        }
+
+        .badge-info {
+            background: rgba(77, 166, 255, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .badge-purple {
+            background: rgba(168, 85, 247, 0.15);
+            color: var(--accent-purple);
+        }
+
+        /* Risk Score */
+        .risk-score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .risk-bar {
+            width: 60px;
+            height: 6px;
+            background: var(--bg-card);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .risk-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .risk-fill.low {
+            background: var(--accent-green);
+        }
+
+        .risk-fill.medium {
+            background: var(--accent-yellow);
+        }
+
+        .risk-fill.high {
+            background: var(--accent-red);
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: var(--border-color);
+        }
+
+        .action-btn.primary {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .action-btn.primary:hover {
+            background: #3d9eff;
+        }
+
+        /* Analyze Panel */
+        .analyze-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            padding: 10px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .quick-btn.danger:hover {
+            background: rgba(255, 71, 87, 0.2);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .quick-btn.success:hover {
+            background: rgba(0, 210, 106, 0.2);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* Result Panel */
+        .result-panel {
+            display: none;
+            margin-top: 25px;
+            padding: 25px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .result-panel.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .result-item {
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+
+        .result-item label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .result-item .value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .result-item .value.approve {
+            color: var(--accent-green);
+        }
+
+        .result-item .value.review {
+            color: var(--accent-yellow);
+        }
+
+        .result-item .value.block {
+            color: var(--accent-red);
+        }
+
+        .rules-triggered {
+            margin-top: 20px;
+        }
+
+        .rules-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .rule-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: rgba(255, 71, 87, 0.15);
+            color: var(--accent-red);
+            border-radius: 6px;
+            font-size: 12px;
+            margin: 3px;
+        }
+
+        /* Alerts Panel */
+        .alert-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--accent-red);
+            transition: all 0.3s;
+        }
+
+        .alert-card:hover {
+            transform: translateX(5px);
+        }
+
+        .alert-card.warning {
+            border-left-color: var(--accent-yellow);
+        }
+
+        .alert-card.info {
+            border-left-color: var(--accent-blue);
+        }
+
+        .alert-content h4 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .alert-content p {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .alert-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .alert-time {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* Progress Ring */
+        .progress-ring {
+            width: 100px;
+            height: 100px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Map Container */
+        .map-container {
+            height: 300px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        /* Network Graph */
+        .network-container {
+            height: 350px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .node {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node:hover {
+            transform: scale(1.2);
+        }
+
+        .node.suspicious {
+            background: var(--accent-red);
+        }
+
+        .node.normal {
+            background: var(--accent-green);
+        }
+
+        .node.user {
+            background: var(--accent-blue);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            padding: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+
+        /* Full Width Charts */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Notification Panel */
+        .notification-panel {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 380px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-top: 10px;
+            z-index: 200;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .notification-panel.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .notification-item.unread {
+            background: rgba(77, 166, 255, 0.05);
+        }
+
+        .notification-item h5 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .notification-item p {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🛡️</div>
+            <h1>Fraud Detection System</h1>
+        </div>
+        <div class="header-actions">
+            <div style="position: relative;">
+                <button class="notification-btn" onclick="toggleNotifications()">
+                    🔔
+                    <span class="notification-badge" id="notificationCount">5</span>
+                </button>
+                <div class="notification-panel" id="notificationPanel">
+                    <div class="notification-header">
+                        <h4>Notifications</h4>
+                        <button class="chart-btn" onclick="markAllRead()">Mark all read</button>
+                    </div>
+                    <div class="notification-list" id="notificationList">
+                        <!-- Notifications will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+            <div class="user-profile">
+                <div class="user-avatar">A</div>
+                <span>Admin</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item active" onclick="showPage('dashboard')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    Dashboard
+                </div>
+                <div class="nav-item" onclick="showPage('analyze')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Analyze Transaction
+                </div>
+                <div class="nav-item" onclick="showPage('alerts')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    Fraud Alerts
+                </div>
+                <div class="nav-item" onclick="showPage('transactions')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    Transactions
+                </div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Analytics</div>
+                <div class="nav-item" onclick="showPage('patterns')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Fraud Patterns
+                </div>
+                <div class="nav-item" onclick="showPage('geography')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                        </path>
+                    </svg>
+                    Geographic View
+                </div>
+                <div class="nav-item" onclick="showPage('network')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    Network Graph
+                </div>
+                <div class="nav-item" onclick="showPage('ml')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                    ML Models
+                </div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Settings</div>
+                <div class="nav-item" onclick="showPage('rules')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    Rule Configuration
+                </div>
+                <div class="nav-item" onclick="showPage('reports')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Reports
+                </div>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <main class="content" id="mainContent">
+            <!-- Dashboard Page -->
+            <div id="page-dashboard">
+                <h2 class="page-title">Dashboard Overview</h2>
+                <p class="page-subtitle">Real-time fraud detection analytics and monitoring</p>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="totalTransactions">0</div>
+                                <div class="stat-label">Total Transactions</div>
+                            </div>
+                            <div class="stat-icon blue">📊</div>
+                        </div>
+                        <div class="stat-trend up">↑ 12.5% from last week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="fraudDetected">0</div>
+                                <div class="stat-label">Fraud Detected</div>
+                            </div>
+                            <div class="stat-icon red">🚨</div>
+                        </div>
+                        <div class="stat-trend down">↓ 3.2% from last week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="alertsPending">0</div>
+                                <div class="stat-label">Pending Alerts</div>
+                            </div>
+                            <div class="stat-icon yellow">⏳</div>
+                        </div>
+                        <div class="stat-trend up">↑ 5 pending review</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="accuracy">98.5%</div>
+                                <div class="stat-label">Detection Accuracy</div>
+                            </div>
+                            <div class="stat-icon green">🎯</div>
+                        </div>
+                        <div class="stat-trend up">↑ 0.3% improvement</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="blockedAmount">$0</div>
+                                <div class="stat-label">Blocked Amount</div>
+                            </div>
+                            <div class="stat-icon purple">💰</div>
+                        </div>
+                        <div class="stat-trend up">↑ $125K this month</div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <div class="chart-card full-width">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Transaction Volume & Fraud Trends</h3>
+                            <div class="chart-actions">
+                                <button class="chart-btn active" onclick="updateTimeRange('7d')">7D</button>
+                                <button class="chart-btn" onclick="updateTimeRange('30d')">30D</button>
+                                <button class="chart-btn" onclick="updateTimeRange('90d')">90D</button>
+                            </div>
+                        </div>
+                        <div class="chart-container large">
+                            <canvas id="trendsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Fraud by Type</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="fraudTypeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Risk Distribution</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="riskChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3 class="chart-title">Recent High-Risk Transactions</h3>
+                        <button class="export-btn" onclick="exportData()">
+                            📥 Export CSV
+                        </button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>User</th>
+                                <th>Amount</th>
+                                <th>Risk Score</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTransactions">
+                            <!-- Transactions will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Analyze Page -->
+            <div id="page-analyze" style="display: none;">
+                <h2 class="page-title">Analyze Transaction</h2>
+                <p class="page-subtitle">Submit transactions for fraud analysis and risk assessment</p>
+
+                <div class="analyze-card">
+                    <div class="quick-actions">
+                        <button class="quick-btn success" onclick="quickAnalyze('normal')">✅ Normal Transaction
+                            ($50)</button>
+                        <button class="quick-btn danger" onclick="quickAnalyze('high')">🚨 High Amount
+                            ($15,000)</button>
+                        <button class="quick-btn" onclick="quickAnalyze('newuser')">👤 New User</button>
+                        <button class="quick-btn" onclick="quickAnalyze('velocity')">⚡ Multiple Rapid Txns</button>
+                        <button class="quick-btn" onclick="quickAnalyze('location')">🌍 Unusual Location</button>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Transaction ID</label>
+                            <input type="text" id="txnId" placeholder="TXN-001">
+                        </div>
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="userId" placeholder="USR-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Amount</label>
+                            <input type="number" id="amount" placeholder="100.00" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Currency</label>
+                            <select id="currency">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Merchant ID</label>
+                            <input type="text" id="merchantId" placeholder="MRC-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Timestamp</label>
+                            <input type="datetime-local" id="timestamp">
+                        </div>
+                        <div class="form-group">
+                            <label>City</label>
+                            <input type="text" id="city" placeholder="New York">
+                        </div>
+                        <div class="form-group">
+                            <label>Country</label>
+                            <input type="text" id="country" placeholder="US">
+                        </div>
+                        <div class="form-group">
+                            <label>Device ID</label>
+                            <input type="text" id="deviceId" placeholder="DEV-001">
+                        </div>
+                        <div class="form-group">
+                            <label>IP Address</label>
+                            <input type="text" id="ipAddress" placeholder="192.168.1.1">
+                        </div>
+                    </div>
+
+                    <button class="action-btn primary" onclick="analyzeTransaction()">🔍 Analyze Transaction</button>
+
+                    <div class="result-panel" id="resultPanel">
+                        <div class="result-header">
+                            <h4 class="result-title">Analysis Result</h4>
+                            <span class="badge badge-success" id="resultBadge">APPROVED</span>
+                        </div>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <label>Risk Score</label>
+                                <div class="value" id="resultScore">0</div>
+                            </div>
+                            <div class="result-item">
+                                <label>Decision</label>
+                                <div class="value approve" id="resultDecision">APPROVE</div>
+                            </div>
+                            <div class="result-item">
+                                <label>Processing Time</label>
+                                <div class="value" id="resultTime">0ms</div>
+                            </div>
+                            <div class="result-item">
+                                <label>Rules Triggered</label>
+                                <div class="value" id="resultRules">0</div>
+                            </div>
+                        </div>
+                        <div class="rules-triggered">
+                            <div class="rules-title">Triggered Rules:</div>
+                            <div id="rulesList"></div>
+                        </div>
+                        <div class="rules-triggered">
+                            <div class="rules-title">Risk Reasons:</div>
+                            <div id="reasonsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Page -->
+            <div id="page-alerts" style="display: none;">
+                <h2 class="page-title">Fraud Alerts</h2>
+                <p class="page-subtitle">Monitor and respond to detected fraud attempts</p>
+
+                <div class="stats-grid" style="margin-bottom: 25px;">
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: var(--accent-red);" id="criticalAlerts">0</div>
+                        <div class="stat-label">Critical</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: var(--accent-yellow);" id="highAlerts">0</div>
+                        <div class="stat-label">High Risk</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: var(--accent-blue);" id="mediumAlerts">0</div>
+                        <div class="stat-label">Medium</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: var(--accent-green);" id="resolvedAlerts">0</div>
+                        <div class="stat-label">Resolved Today</div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="search-box">
+                            🔍
+                            <input type="text" placeholder="Search alerts..." onkeyup="searchAlerts(this.value)">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="filter-btn">🔽 Filter</button>
+                            <button class="export-btn">📥 Export</button>
+                        </div>
+                    </div>
+                    <div id="alertsList">
+                        <!-- Alerts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Page -->
+            <div id="page-transactions" style="display: none;">
+                <h2 class="page-title">Transaction History</h2>
+                <p class="page-subtitle">View and manage all analyzed transactions</p>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="search-box">
+                            🔍
+                            <input type="text" placeholder="Search transactions..."
+                                onkeyup="searchTransactions(this.value)">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="action-btn primary" onclick="addTransaction()">➕ Add Transaction</button>
+                            <button class="export-btn" onclick="exportData()">📥 Export CSV</button>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>User</th>
+                                <th>Amount</th>
+                                <th>Risk Score</th>
+                                <th>Decision</th>
+                                <th>Triggered Rules</th>
+                                <th>Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allTransactions">
+                            <!-- Transactions will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Patterns Page -->
+            <div id="page-patterns" style="display: none;">
+                <h2 class="page-title">Fraud Patterns</h2>
+                <p class="page-subtitle">Analyze historical fraud patterns and trends</p>
+
+                <div class="charts-grid">
+                    <div class="chart-card full-width">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Hourly Fraud Distribution</h3>
+                        </div>
+                        <div class="chart-container large">
+                            <canvas id="hourlyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Amount Range Analysis</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="amountChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Day of Week Analysis</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="dayChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Geography Page -->
+            <div id="page-geography" style="display: none;">
+                <h2 class="page-title">Geographic Distribution</h2>
+                <p class="page-subtitle">Fraud incidents by location</p>
+
+                <div class="charts-grid">
+                    <div class="chart-card full-width">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Fraud by Country</h3>
+                        </div>
+                        <div class="chart-container large">
+                            <canvas id="geoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Page -->
+            <div id="page-network" style="display: none;">
+                <h2 class="page-title">Network Graph</h2>
+                <p class="page-subtitle">Connections between suspicious entities</p>
+
+                <div class="table-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Entity Network</h3>
+                    </div>
+                    <div class="network-container" id="networkGraph">
+                        <!-- Network visualization will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules Page -->
+            <div id="page-rules" style="display: none;">
+                <h2 class="page-title">Rule Configuration</h2>
+                <p class="page-subtitle">Configure fraud detection rules and thresholds</p>
+
+                <div class="rules-grid" id="rulesGrid">
+                    <!-- Rules will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div id="page-reports" style="display: none;">
+                <h2 class="page-title">Reports</h2>
+                <p class="page-subtitle">Generate and download fraud detection reports</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card" onclick="generateReport('daily')" style="cursor: pointer;">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value">📅</div>
+                                <div class="stat-label">Daily Report</div>
+                            </div>
+                            <div class="stat-icon blue">📄</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="generateReport('weekly')" style="cursor: pointer;">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value">📆</div>
+                                <div class="stat-label">Weekly Report</div>
+                            </div>
+                            <div class="stat-icon green">📄</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="generateReport('monthly')" style="cursor: pointer;">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value">📊</div>
+                                <div class="stat-label">Monthly Report</div>
+                            </div>
+                            <div class="stat-icon purple">📄</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML Models Page -->
+            <div id="page-ml" style="display: none;">
+                <h2 class="page-title">ML Models</h2>
+                <p class="page-subtitle">Machine Learning for Fraud Detection</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" style="font-size: 24px;">🤖</div>
+                                <div class="stat-label">Random Forest</div>
+                            </div>
+                            <div class="stat-icon blue">🎯</div>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 10px; font-size: 13px;">
+                            Ensemble learning method for classification. High accuracy for fraud detection.
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <span class="badge badge-success">Training</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" style="font-size: 24px;">🧠</div>
+                                <div class="stat-label">Neural Network</div>
+                            </div>
+                            <div class="stat-icon purple">🔮</div>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 10px; font-size: 13px;">
+                            Deep learning model for pattern recognition in transaction data.
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <span class="badge badge-warning">Beta</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" style="font-size: 24px;">📊</div>
+                                <div class="stat-label">XGBoost</div>
+                            </div>
+                            <div class="stat-icon green">⚡</div>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 10px; font-size: 13px;">
+                            Gradient boosting for high-performance fraud classification.
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <span class="badge badge-info">Research</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3 class="chart-title">Model Performance</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Accuracy</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1 Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Random Forest</td>
+                                <td>98.5%</td>
+                                <td>96.2%</td>
+                                <td>94.8%</td>
+                                <td>95.5%</td>
+                                <td><span class="badge badge-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>Neural Network</td>
+                                <td>97.3%</td>
+                                <td>94.1%</td>
+                                <td>93.5%</td>
+                                <td>93.8%</td>
+                                <td><span class="badge badge-warning">Testing</span></td>
+                            </tr>
+                            <tr>
+                                <td>XGBoost</td>
+                                <td>98.1%</td>
+                                <td>95.8%</td>
+                                <td>94.2%</td>
+                                <td>95.0%</td>
+                                <td><span class="badge badge-info">Training</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Charts
+        Chart.register(ChartDataLabels);
+
+        // API Base URL
+        const API_BASE = 'http://localhost:8080';
+
+        // Global State
+        let charts = {};
+        let currentPage = 'dashboard';
+        let transactions = [];
+        let alerts = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            loadDashboardData();
+            loadRecentTransactions();
+            loadAlerts();
+            setDefaultDate();
+        });
+
+        // Navigation
+        function showPage(page) {
+            currentPage = page;
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+
+            document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+            document.getElementById('page-' + page).style.display = 'block';
+
+            if (page === 'dashboard') loadDashboardData();
+            if (page === 'alerts') loadAlerts();
+            if (page === 'transactions') loadAllTransactions();
+            if (page === 'patterns') loadPatternsData();
+            if (page === 'geography') loadGeoData();
+            if (page === 'network') loadNetworkData();
+            if (page === 'rules') loadRules();
+        }
+
+        // Initialize Charts
+        function initializeCharts() {
+            // Trends Chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            charts.trends = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Transactions',
+                        data: [1200, 1900, 1500, 2100, 1800, 900, 1100],
+                        borderColor: '#4da6ff',
+                        backgroundColor: 'rgba(77, 166, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Fraud Detected',
+                        data: [12, 19, 8, 15, 12, 5, 7],
+                        borderColor: '#ff4757',
+                        backgroundColor: 'rgba(255, 71, 87, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#a0a0c0' }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                    }
+                }
+            });
+
+            // Fraud Type Chart
+            const fraudTypeCtx = document.getElementById('fraudTypeChart').getContext('2d');
+            charts.fraudType = new Chart(fraudTypeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Amount Fraud', 'Velocity', 'Location', 'New Account', 'Other'],
+                    datasets: [{
+                        data: [35, 25, 20, 15, 5],
+                        backgroundColor: ['#ff4757', '#ffd93d', '#4da6ff', '#a855f7', '#00d26a']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#a0a0c0', padding: 15 }
+                        }
+                    }
+                }
+            });
+
+            // Risk Distribution Chart
+            const riskCtx = document.getElementById('riskChart').getContext('2d');
+            charts.risk = new Chart(riskCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['0-20', '21-40', '41-60', '61-80', '81-100'],
+                    datasets: [{
+                        label: 'Transactions',
+                        data: [450, 280, 120, 80, 45],
+                        backgroundColor: ['#00d26a', '#a0e040', '#ffd93d', '#ff8c00', '#ff4757']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                    }
+                }
+            });
+        }
+
+        // Load Dashboard Data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+
+                document.getElementById('enabledRules').textContent = data.rules.enabled;
+
+                // Load transactions count
+                const usersResponse = await fetch(`${API_BASE}/api/users`);
+                const users = await usersResponse.json();
+                document.getElementById('totalUsers').textContent = users.length;
+
+                // Simulate other stats
+                document.getElementById('totalTransactions').textContent = Math.floor(Math.random() * 10000) + 5000;
+                document.getElementById('fraudDetected').textContent = Math.floor(Math.random() * 100) + 50;
+                document.getElementById('alertsPending').textContent = data.alerts.NEW || 0;
+
+            } catch (e) {
+                console.error('Error loading dashboard:', e);
+                // Use mock data
+                document.getElementById('totalTransactions').textContent = '7,234';
+                document.getElementById('fraudDetected').textContent = '47';
+                document.getElementById('alertsPending').textContent = '5';
+                document.getElementById('accuracy').textContent = '98.5%';
+                document.getElementById('blockedAmount').textContent = '$125,430';
+            }
+        }
+
+        // Load Recent Transactions
+        async function loadRecentTransactions() {
+            const tbody = document.getElementById('recentTransactions');
+
+            // Mock data for demo
+            const mockTxns = [
+                { id: 'TXN-001', user: 'user-123', amount: 15000, risk: 100, status: 'BLOCK', time: '2 min ago' },
+                { id: 'TXN-002', user: 'user-456', amount: 500, risk: 45, status: 'REVIEW', time: '5 min ago' },
+                { id: 'TXN-003', user: 'trusted-user', amount: 50, risk: 0, status: 'APPROVE', time: '8 min ago' },
+                { id: 'TXN-004', user: 'user-789', amount: 2500, risk: 75, status: 'REVIEW', time: '12 min ago' },
+                { id: 'TXN-005', user: 'user-321', amount: 8900, risk: 90, status: 'BLOCK', time: '15 min ago' }
+            ];
+
+            tbody.innerHTML = mockTxns.map(txn => `
+                <tr>
+                    <td class="txn-id">${txn.id}</td>
+                    <td>${txn.user}</td>
+                    <td class="amount">$${txn.amount.toLocaleString()}</td>
+                    <td>
+                        <div class="risk-score">
+                            <div class="risk-bar">
+                                <div class="risk-fill ${txn.risk >= 75 ? 'high' : txn.risk >= 50 ? 'medium' : 'low'}" style="width: ${txn.risk}%"></div>
+                            </div>
+                            <span>${txn.risk}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge ${txn.status === 'APPROVE' ? 'badge-success' : txn.status === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${txn.status}</span></td>
+                    <td>${txn.time}</td>
+                    <td><button class="action-btn" onclick="viewTransaction('${txn.id}')">View</button></td>
+                </tr>
+            `).join('');
+        }
+
+        // Load Alerts
+        async function loadAlerts() {
+            const container = document.getElementById('alertsList');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/alerts`);
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">No alerts found</p>';
+                    return;
+                }
+
+                alerts = data;
+
+                // Update stats
+                document.getElementById('criticalAlerts').textContent = data.filter(a => a.severity === 'CRITICAL').length;
+                document.getElementById('highAlerts').textContent = data.filter(a => a.severity === 'HIGH').length;
+                document.getElementById('mediumAlerts').textContent = data.filter(a => a.severity === 'MEDIUM').length;
+
+                container.innerHTML = data.map(alert => `
+                    <div class="alert-card ${alert.severity === 'MEDIUM' ? 'warning' : ''}">
+                        <div class="alert-content">
+                            <h4>${alert.transactionId}</h4>
+                            <p>${alert.description}</p>
+                            <div class="alert-meta">
+                                <span class="badge ${alert.severity === 'CRITICAL' ? 'badge-danger' : alert.severity === 'HIGH' ? 'badge-warning' : 'badge-info'}">${alert.severity}</span>
+                                <span class="alert-time">${new Date(alert.createdAt).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="action-btn" onclick="viewAlertDetails('${alert.alertId}')">Details</button>
+                            <button class="action-btn primary" onclick="resolveAlert('${alert.alertId}')">Resolve</button>
+                            <button class="action-btn danger" onclick="deleteAlert('${alert.alertId}')" style="color: var(--accent-red);">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error('Error loading alerts:', e);
+                // Use mock data
+                const mockAlerts = [
+                    { id: 'alert-001', txn: 'TXN-001', desc: 'High amount transaction $15,000 - exceeds limit', severity: 'CRITICAL', time: '2 min ago' },
+                    { id: 'alert-002', txn: 'TXN-004', desc: 'Multiple rapid transactions detected', severity: 'HIGH', time: '12 min ago' },
+                    { id: 'alert-003', txn: 'TXN-007', desc: 'Transaction from unusual location', severity: 'MEDIUM', time: '25 min ago' }
+                ];
+
+                document.getElementById('criticalAlerts').textContent = '1';
+                document.getElementById('highAlerts').textContent = '1';
+                document.getElementById('mediumAlerts').textContent = '1';
+
+                container.innerHTML = mockAlerts.map(alert => `
+                    <div class="alert-card ${alert.severity === 'MEDIUM' ? 'warning' : ''}">
+                        <div class="alert-content">
+                            <h4>${alert.txn}</h4>
+                            <p>${alert.desc}</p>
+                            <div class="alert-meta">
+                                <span class="badge ${alert.severity === 'CRITICAL' ? 'badge-danger' : alert.severity === 'HIGH' ? 'badge-warning' : 'badge-info'}">${alert.severity}</span>
+                                <span class="alert-time">${alert.time}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="action-btn">Details</button>
+                            <button class="action-btn primary">Resolve</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Load All Transactions
+        async function loadAllTransactions() {
+            const tbody = document.getElementById('allTransactions');
+
+            // Mock data
+            const mockTxns = [
+                { id: 'TXN-001', user: 'user-123', amount: 15000, risk: 100, status: 'BLOCK', rules: ['AMOUNT', 'LOCATION'], time: '2 min ago' },
+                { id: 'TXN-002', user: 'user-456', amount: 500, risk: 45, status: 'REVIEW', rules: ['NEW_ACCOUNT'], time: '5 min ago' },
+                { id: 'TXN-003', user: 'trusted-user', amount: 50, risk: 0, status: 'APPROVE', rules: [], time: '8 min ago' },
+                { id: 'TXN-004', user: 'user-789', amount: 2500, risk: 75, status: 'REVIEW', rules: ['VELOCITY'], time: '12 min ago' },
+                { id: 'TXN-005', user: 'user-321', amount: 8900, risk: 90, status: 'BLOCK', rules: ['AMOUNT'], time: '15 min ago' },
+                { id: 'TXN-006', user: 'user-654', amount: 200, risk: 30, status: 'REVIEW', rules: ['LOCATION'], time: '20 min ago' },
+                { id: 'TXN-007', user: 'user-987', amount: 100, risk: 0, status: 'APPROVE', rules: [], time: '25 min ago' }
+            ];
+
+            tbody.innerHTML = mockTxns.map(txn => `
+                <tr>
+                    <td class="txn-id">${txn.id}</td>
+                    <td>${txn.user}</td>
+                    <td class="amount">$${txn.amount.toLocaleString()}</td>
+                    <td>
+                        <div class="risk-score">
+                            <div class="risk-bar">
+                                <div class="risk-fill ${txn.risk >= 75 ? 'high' : txn.risk >= 50 ? 'medium' : 'low'}" style="width: ${txn.risk}%"></div>
+                            </div>
+                            <span>${txn.risk}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge ${txn.status === 'APPROVE' ? 'badge-success' : txn.status === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${txn.status}</span></td>
+                    <td>${txn.rules.map(r => `<span class="rule-tag">${r}</span>`).join(' ') || '-'}</td>
+                    <td>${txn.time}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Quick Analyze
+        function quickAnalyze(type) {
+            setDefaultDate();
+
+            const scenarios = {
+                normal: { userId: 'trusted-user', amount: 50, city: 'New York', country: 'US' },
+                high: { userId: 'unknown-user', amount: 15000, city: '', country: '' },
+                newuser: { userId: 'new-user-123', amount: 200, city: '', country: '' },
+                velocity: { userId: 'fast-user', amount: 500, city: 'London', country: 'UK' },
+                location: { userId: 'traveler', amount: 1000, city: 'Moscow', country: 'RU' }
+            };
+
+            const data = scenarios[type];
+            document.getElementById('userId').value = data.userId;
+            document.getElementById('amount').value = data.amount;
+            document.getElementById('city').value = data.city || '';
+            document.getElementById('country').value = data.country || '';
+            document.getElementById('txnId').value = 'TXN-' + Date.now().toString().slice(-6);
+
+            analyzeTransaction();
+        }
+
+        // Analyze Transaction
+        async function analyzeTransaction() {
+            const txnId = document.getElementById('txnId').value || 'txn-' + Date.now();
+            const userId = document.getElementById('userId').value;
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            const currency = document.getElementById('currency').value;
+            const merchantId = document.getElementById('merchantId').value;
+            let timestamp = document.getElementById('timestamp').value;
+            const city = document.getElementById('city').value;
+            const country = document.getElementById('country').value;
+
+            if (!timestamp) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                timestamp = now.toISOString().slice(0, 16);
+            }
+
+            const transaction = {
+                transactionId: txnId,
+                userId: userId,
+                amount: amount,
+                currency: currency,
+                timestamp: new Date(timestamp).toISOString(),
+                merchantId: merchantId
+            };
+
+            if (city || country) {
+                transaction.location = {};
+                if (city) transaction.location.city = city;
+                if (country) transaction.location.country = country;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/transactions/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transaction)
+                });
+
+                const result = await response.json();
+                showResult(result);
+
+            } catch (e) {
+                console.error('Error analyzing:', e);
+                // Mock result for demo
+                const mockResult = {
+                    decision: amount > 10000 ? 'BLOCK' : amount > 5000 ? 'REVIEW' : 'APPROVE',
+                    riskScore: Math.min(100, Math.floor(amount / 100 + Math.random() * 30)),
+                    processingTimeMs: Math.floor(Math.random() * 10) + 1,
+                    triggeredRules: amount > 10000 ? ['AMOUNT_RULE', 'NEW_ACCOUNT_RULE'] : amount > 5000 ? ['AMOUNT_RULE'] : [],
+                    reasons: amount > 10000 ? ['Amount exceeds limit', 'New account'] : amount > 5000 ? ['Suspicious amount'] : []
+                };
+                showResult(mockResult);
+            }
+        }
+
+        // Show Result
+        function showResult(result) {
+            const panel = document.getElementById('resultPanel');
+            panel.classList.add('show');
+
+            document.getElementById('resultScore').textContent = result.riskScore;
+            document.getElementById('resultDecision').textContent = result.decision;
+            document.getElementById('resultTime').textContent = result.processingTimeMs + 'ms';
+            document.getElementById('resultRules').textContent = result.triggeredRules?.length || 0;
+
+            const badge = document.getElementById('resultBadge');
+            badge.className = 'badge ' + (result.decision === 'APPROVE' ? 'badge-success' : result.decision === 'REVIEW' ? 'badge-warning' : 'badge-danger');
+            badge.textContent = result.decision;
+
+            const decisionEl = document.getElementById('resultDecision');
+            decisionEl.className = 'value ' + (result.decision === 'APPROVE' ? 'approve' : result.decision === 'REVIEW' ? 'review' : 'block');
+
+            document.getElementById('rulesList').innerHTML = result.triggeredRules?.map(r => `<span class="rule-tag">${r}</span>`).join('') || '-';
+            document.getElementById('reasonsList').innerHTML = result.reasons?.map(r => `<span class="rule-tag" style="background: rgba(255, 217, 61, 0.15); color: var(--accent-yellow);">${r}</span>`).join('') || '-';
+        }
+
+        // Set Default Date
+        function setDefaultDate() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('timestamp').value = now.toISOString().slice(0, 16);
+        }
+
+        // Load Rules
+        async function loadRules() {
+            try {
+                const response = await fetch(`${API_BASE}/api/rules`);
+                const rules = await response.json();
+
+                const grid = document.getElementById('rulesGrid');
+                grid.innerHTML = rules.map((rule, i) => `
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" style="font-size: 24px;">${rule.name}</div>
+                                <div class="stat-label">Risk Score: ${rule.riskScore}</div>
+                            </div>
+                            <div class="stat-icon ${i > 2 ? 'yellow' : 'red'}">⚙️</div>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 10px; font-size: 13px;">
+                            ${getRuleDescription(rule.name)}
+                        </p>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="action-btn">Configure</button>
+                            <button class="action-btn ${rule.enabled ? 'primary' : ''}">${rule.enabled ? 'Enabled' : 'Disabled'}</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error('Error loading rules:', e);
+            }
+        }
+
+        function getRuleDescription(ruleName) {
+            const descriptions = {
+                'AMOUNT_RULE': 'Flags transactions exceeding configured thresholds',
+                'VELOCITY_RULE': 'Detects too many transactions in a short time',
+                'LOCATION_RULE': 'Identifies unusual transaction locations',
+                'NEW_ACCOUNT_RULE': 'Applies extra scrutiny to new accounts'
+            };
+            return descriptions[ruleName] || 'Custom fraud detection rule';
+        }
+
+        // Load Patterns Data
+        function loadPatternsData() {
+            // Fetch pattern statistics from API
+            fetch('/api/stats/patterns')
+                .then(response => response.json())
+                .then(data => {
+                    initializeHourlyChart(data.hourlyDistribution || getEmptyArray(24));
+                    initializeAmountChart(data.amountRanges || {});
+                    initializeDayChart(data.dailyDistribution || getEmptyArray(7));
+                })
+                .catch(err => {
+                    console.log('Using mock data for patterns');
+                    initializeHourlyChart(null);
+                    initializeAmountChart(null);
+                    initializeDayChart(null);
+                });
+        }
+
+        function getEmptyArray(size) {
+            return Array(size).fill(0);
+        }
+
+        function initializeHourlyChart(data) {
+            const hourlyCtx = document.getElementById('hourlyChart');
+            if (!hourlyCtx) return;
+
+            new Chart(hourlyCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+                    datasets: [{
+                        label: 'Fraud Incidents',
+                        data: data || Array.from({ length: 24 }, () => Math.floor(Math.random() * 15)),
+                        backgroundColor: 'rgba(255, 71, 87, 0.6)',
+                        borderColor: 'rgba(255, 71, 87, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#a0a0c0' } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                    }
+                }
+            });
+        }
+
+        function initializeAmountChart(data) {
+            const amountCtx = document.getElementById('amountChart');
+            if (!amountCtx) return;
+
+            const labels = data ? Object.keys(data) : ['0-100', '101-500', '501-1000', '1001-5000', '5001-10000', '10000+'];
+            const values = data ? Object.values(data) : [45, 30, 25, 35, 20, 15];
+
+            new Chart(amountCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#00d26a', '#4da6ff', '#ffd93d', '#a855f7', '#ff8c00', '#ff4757']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#a0a0c0', padding: 10 } }
+                    }
+                }
+            });
+        }
+
+        function initializeDayChart(data) {
+            const dayCtx = document.getElementById('dayChart');
+            if (!dayCtx) return;
+
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            new Chart(dayCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: dayNames,
+                    datasets: [{
+                        label: 'Fraud Cases',
+                        data: data || Array.from({ length: 7 }, () => Math.floor(Math.random() * 25) + 5),
+                        backgroundColor: 'rgba(168, 85, 247, 0.6)',
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#a0a0c0' } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                    }
+                }
+            });
+        }
+
+        // Load Geo Data
+        function loadGeoData() {
+            fetch('/api/stats/geography')
+                .then(response => response.json())
+                .then(data => {
+                    initializeGeoChart(data);
+                })
+                .catch(err => {
+                    console.log('Using mock data for geography');
+                    initializeGeoChart(null);
+                });
+        }
+
+        function initializeGeoChart(data) {
+            const geoCtx = document.getElementById('geoChart');
+            if (!geoCtx) return;
+
+            const labels = data ? Object.keys(data) : ['US', 'UK', 'Germany', 'France', 'Russia', 'China', 'Brazil', 'India'];
+            const values = data ? Object.values(data) : [45, 28, 22, 18, 35, 15, 20, 12];
+
+            new Chart(geoCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Fraud Cases',
+                        data: values,
+                        backgroundColor: ['#4da6ff', '#00d26a', '#ffd93d', '#a855f7', '#ff4757', '#ff8c00', '#00d26a', '#4da6ff']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { labels: { color: '#a0a0c0' } }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } },
+                        y: { grid: { display: false }, ticks: { color: '#a0a0c0' } }
+                    }
+                }
+            });
+        }
+
+        // Load Network Data
+        function loadNetworkData() {
+            const container = document.getElementById('networkGraph');
+            if (container) {
+                container.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%;">
+                        <div class="node user" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px;">👤</div>
+                        <div class="node suspicious" style="top: 20%; left: 30%;">🔴</div>
+                        <div class="node suspicious" style="top: 20%; left: 70%;">🔴</div>
+                        <div class="node normal" style="top: 70%; left: 25%;">🟢</div>
+                        <div class="node normal" style="top: 70%; left: 75%;">🟢</div>
+                        <div class="node suspicious" style="top: 45%; left: 15%;">🔴</div>
+                        <div class="node normal" style="top: 45%; left: 85%;">🟢</div>
+                    </div>
+                    <p style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: var(--text-secondary); font-size: 12px;">
+                        🔴 Suspicious Node  🟢 Normal Node  👤 Central Entity
+                    </p>
+                `;
+            }
+        }
+
+        // Update Time Range
+        function updateTimeRange(range) {
+            document.querySelectorAll('.chart-actions .chart-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update chart data based on range
+            const labels = range === '7d' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] :
+                range === '30d' ? Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`) :
+                    Array.from({ length: 12 }, (_, i) => `Week ${i + 1}`);
+
+            charts.trends.data.labels = labels;
+            charts.trends.data.datasets[0].data = labels.map(() => Math.floor(Math.random() * 2000) + 500);
+            charts.trends.data.datasets[1].data = labels.map(() => Math.floor(Math.random() * 30) + 5);
+            charts.trends.update();
+        }
+
+        // Toggle Notifications
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('show');
+
+            if (panel.classList.contains('show')) {
+                loadNotifications();
+            }
+        }
+
+        function loadNotifications() {
+            const list = document.getElementById('notificationList');
+            list.innerHTML = `
+                <div class="notification-item unread">
+                    <h5>🚨 High Risk Transaction Detected</h5>
+                    <p>Transaction TXN-001 flagged for review - Amount: $15,000</p>
+                </div>
+                <div class="notification-item unread">
+                    <h5>📊 Daily Report Ready</h5>
+                    <p>Your daily fraud detection report is available</p>
+                </div>
+                <div class="notification-item">
+                    <h5>✅ Alert Resolved</h5>
+                    <p>Alert alert-001 has been resolved</p>
+                </div>
+            `;
+        }
+
+        function markAllRead() {
+            document.querySelectorAll('.notification-item').forEach(item => item.classList.remove('unread'));
+            document.getElementById('notificationCount').textContent = '0';
+        }
+
+        // Search Functions
+        function searchAlerts(query) {
+            // Filter alerts based on search query
+            console.log('Searching alerts:', query);
+        }
+
+        function searchTransactions(query) {
+            // Filter transactions based on search query
+            console.log('Searching transactions:', query);
+        }
+
+        // View Details
+        function viewTransaction(id) {
+            console.log('Viewing transaction:', id);
+        }
+
+        function viewAlertDetails(id) {
+            console.log('Viewing alert:', id);
+        }
+
+        function resolveAlert(id) {
+            console.log('Resolving alert:', id);
+        }
+
+        // Export Data
+        function exportData() {
+            fetch('/api/transactions')
+                .then(response => response.json())
+                .then(data => {
+                    const csv = convertToCSV(data);
+                    downloadCSV(csv, 'transactions.csv');
+                })
+                .catch(err => {
+                    alert('Error exporting data');
+                });
+        }
+
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            const headers = Object.keys(data[0]).join(',');
+            const rows = data.map(row => Object.values(row).join(','));
+            return [headers, ...rows].join('\n');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // CRUD Operations for Transactions
+        function addTransaction() {
+            const formHtml = `
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="form-group">
+                        <label>Transaction ID (auto-generated if empty)</label>
+                        <input type="text" id="newTxnId" placeholder="TXN-001">
+                    </div>
+                    <div class="form-group">
+                        <label>User ID *</label>
+                        <input type="text" id="newUserId" placeholder="user-123">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount *</label>
+                        <input type="number" id="newAmount" placeholder="100.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Currency</label>
+                        <select id="newCurrency">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Merchant ID</label>
+                        <input type="text" id="newMerchantId" placeholder="MRC-001">
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" id="newCity" placeholder="New York">
+                    </div>
+                    <div class="form-group">
+                        <label>Country</label>
+                        <input type="text" id="newCountry" placeholder="US">
+                    </div>
+                </div>
+            `;
+
+            if (confirm(formHtml + '\n\nClick OK to save or Cancel to abort.')) {
+                const txn = {
+                    transactionId: document.getElementById('newTxnId').value || undefined,
+                    userId: document.getElementById('newUserId').value,
+                    amount: parseFloat(document.getElementById('newAmount').value),
+                    currency: document.getElementById('newCurrency').value,
+                    merchantId: document.getElementById('newMerchantId').value || undefined,
+                    location: {
+                        city: document.getElementById('newCity').value,
+                        country: document.getElementById('newCountry').value
+                    }
+                };
+
+                if (!txn.userId || isNaN(txn.amount)) {
+                    alert('Please fill in required fields (User ID and Amount)');
+                    return;
+                }
+
+                fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(txn)
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to create');
+                        return response.json();
+                    })
+                    .then(data => {
+                        alert('Transaction created: ' + (data.transactionId || 'Success'));
+                        loadAllTransactions();
+                    })
+                    .catch(err => {
+                        alert('Error creating transaction: ' + err.message);
+                    });
+            }
+        }
+
+        function editTransaction(id) {
+            fetch('/api/transactions/' + id)
+                .then(response => response.json())
+                .then(txn => {
+                    const formHtml = `
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <div class="form-group">
+                                <label>Transaction ID</label>
+                                <input type="text" id="editTxnId" value="${txn.transactionId}" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>User ID</label>
+                                <input type="text" id="editUserId" value="${txn.userId || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>Amount</label>
+                                <input type="number" id="editAmount" value="${txn.amount || 0}" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Merchant ID</label>
+                                <input type="text" id="editMerchantId" value="${txn.merchantId || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" id="editCity" value="${txn.location?.city || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>Country</label>
+                                <input type="text" id="editCountry" value="${txn.location?.country || ''}">
+                            </div>
+                        </div>
+                    `;
+
+                    if (confirm(formHtml + '\n\nClick OK to save changes or Cancel to abort.')) {
+                        const updatedTxn = {
+                            userId: document.getElementById('editUserId').value,
+                            amount: parseFloat(document.getElementById('editAmount').value),
+                            merchantId: document.getElementById('editMerchantId').value || undefined,
+                            location: {
+                                city: document.getElementById('editCity').value,
+                                country: document.getElementById('editCountry').value
+                            }
+                        };
+
+                        fetch('/api/transactions/' + id, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updatedTxn)
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                alert('Transaction updated: ' + id);
+                                loadAllTransactions();
+                            })
+                            .catch(err => {
+                                alert('Error updating transaction: ' + err.message);
+                            });
+                    }
+                });
+        }
+
+        function deleteTransaction(id) {
+            if (confirm('Are you sure you want to delete transaction ' + id + '?')) {
+                fetch('/api/transactions/' + id, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Transaction deleted: ' + id);
+                            loadAllTransactions();
+                        } else {
+                            alert('Error deleting transaction');
+                        }
+                    })
+                    .catch(err => {
+                        alert('Error: ' + err.message);
+                    });
+            }
+        }
+
+        function deleteAlert(id) {
+            if (confirm('Are you sure you want to delete alert ' + id + '?')) {
+                fetch('/api/alerts/' + id, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Alert deleted: ' + id);
+                            loadAlerts();
+                        } else {
+                            alert('Error deleting alert');
+                        }
+                    })
+                    .catch(err => {
+                        alert('Error: ' + err.message);
+                    });
+            }
+        }
+
+        // Load All Transactions with CRUD buttons
+        function loadAllTransactions() {
+            fetch('/api/transactions')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('allTransactions');
+                    if (!tbody) return;
+
+                    tbody.innerHTML = data.map(txn => `
+                        <tr>
+                            <td class="txn-id">${txn.transactionId || txn.transactionid || 'N/A'}</td>
+                            <td>${txn.userId || txn.userid || 'N/A'}</td>
+                            <td class="amount">${(txn.amount || 0).toLocaleString()}</td>
+                            <td>${txn.riskScore || txn.riskscore || 'N/A'}</td>
+                            <td><span class="badge ${txn.decision === 'APPROVE' ? 'badge-success' : txn.decision === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${txn.decision || txn.decision || 'N/A'}</span></td>
+                            <td>${txn.timestamp || txn.timestamp || 'N/A'}</td>
+                            <td>
+                                <button class="action-btn" onclick="editTransaction('${txn.transactionId || txn.transactionid}')">Edit</button>
+                                <button class="action-btn danger" onclick="deleteTransaction('${txn.transactionId || txn.transactionid}')" style="color: var(--accent-red);">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => {
+                    console.log('Error loading transactions:', err);
+                    // Fallback to mock data
+                    loadMockTransactions();
+                });
+        }
+
+        function loadMockTransactions() {
+            const mockTxns = [
+                { id: 'TXN-001', user: 'user-123', amount: 15000, risk: 100, status: 'BLOCK', time: '2 min ago' },
+                { id: 'TXN-002', user: 'user-456', amount: 500, risk: 45, status: 'REVIEW', time: '5 min ago' },
+                { id: 'TXN-003', user: 'trusted-user', amount: 50, risk: 0, status: 'APPROVE', time: '8 min ago' }
+            ];
+
+            const tbody = document.getElementById('allTransactions');
+            if (!tbody) return;
+
+            tbody.innerHTML = mockTxns.map(txn => `
+                <tr>
+                    <td class="txn-id">${txn.id}</td>
+                    <td>${txn.user}</td>
+                    <td class="amount">${txn.amount.toLocaleString()}</td>
+                    <td><div class="risk-score"><div class="risk-bar"><div class="risk-fill ${txn.risk >= 75 ? 'high' : txn.risk >= 50 ? 'medium' : 'low'}" style="width: ${txn.risk}%"></div></div><span>${txn.risk}</span></div></td>
+                    <td><span class="badge ${txn.status === 'APPROVE' ? 'badge-success' : txn.status === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${txn.status}</span></td>
+                    <td>${txn.time}</td>
+                    <td>
+                        <button class="action-btn" onclick="editTransaction('${txn.id}')">Edit</button>
+                        <button class="action-btn danger" onclick="deleteTransaction('${txn.id}')" style="color: var(--accent-red);">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Generate Report
+        function generateReport(type) {
+            alert(`Generating ${type} report...`);
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+        }
+
+        // Outside click to close notification panel
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('notificationPanel');
+            const btn = document.querySelector('.notification-btn');
+            if (!panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+
+</html>

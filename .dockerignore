@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Build
+target/
+build/
+*.class
+
+# Logs
+logs/
+*.log
+
+# Documentation
+docs/
+README.md
+*.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml

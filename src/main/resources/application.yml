@@ -1,0 +1,122 @@
+# Fraud Detection System Configuration
+# This file contains all configuration settings for the application
+
+# Application Settings
+spring:
+  application:
+    name: fraud-detection
+
+  # PostgreSQL Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fraud_detection
+    username: fraud_user
+    password: ${DB_PASSWORD:change_me}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  # JPA/Hibernate Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+    open-in-view: false
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 5000ms
+    # Redis connection pool settings
+  redis:
+    pool:
+      max-active: 50
+      max-idle: 20
+      min-idle: 5
+      max-wait: 3000ms
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 20
+    max-connections: 10000
+    accept-count: 100
+
+# Fraud Detection Configuration
+fraud:
+  rules:
+    # Risk score thresholds
+    highRiskThreshold: 75.0
+    mediumRiskThreshold: 50.0
+
+    # Amount thresholds
+    maxSingleTransactionAmount: 10000.0
+    suspiciousAmountThreshold: 5000.0
+    highRiskAmountThreshold: 8000.0
+
+    # Velocity settings
+    velocityTimeWindowMinutes: 60
+    maxTransactionsPerWindow: 10
+    suspiciousVelocityThreshold: 5
+
+    # Rule configuration path
+    ruleConfigPath: classpath:rules.json
+
+  # Async processing configuration
+  processing:
+    threadPoolSize: 20
+    queueCapacity: 1000
+    timeoutSeconds: 5
+    asyncEnabled: true
+
+  # Alert configuration
+  alert:
+    notificationsEnabled: true
+    notificationWebhook: ${WEBHOOK_URL:}
+    alertRetentionDays: 90
+
+# Actuator/Metrics Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fraud: DEBUG
+    org.springframework.data: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/fraud-detection.log
+    max-size: 100MB
+    max-history: 10
