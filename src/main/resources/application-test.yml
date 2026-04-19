@@ -1,0 +1,84 @@
+# Test Profile Configuration - H2 In-Memory Database
+# Use this profile for simple local testing without PostgreSQL/Redis
+
+spring:
+  application:
+    name: fraud-detection
+
+  # H2 In-Memory Database (no installation required)
+  datasource:
+    url: jdbc:h2:mem:frauddb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+
+  # H2 Console (access via http://localhost:8080/h2-console)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # JPA Configuration for H2
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  # Disable Redis for test profile
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# Disable Redis completely
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+# Server Configuration
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 50
+      min-spare: 10
+
+# Fraud Detection Configuration (simplified)
+fraud:
+  rules:
+    highRiskThreshold: 75.0
+    mediumRiskThreshold: 50.0
+    maxSingleTransactionAmount: 10000.0
+    suspiciousAmountThreshold: 5000.0
+    highRiskAmountThreshold: 8000.0
+    velocityTimeWindowMinutes: 60
+    maxTransactionsPerWindow: 10
+    suspiciousVelocityThreshold: 5
+
+  # Disable async for simpler testing
+  processing:
+    threadPoolSize: 2
+    queueCapacity: 100
+    timeoutSeconds: 5
+    asyncEnabled: false
+
+  # Disable alerts for simpler testing
+  alert:
+    notificationsEnabled: false
+    alertRetentionDays: 7
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fraud: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

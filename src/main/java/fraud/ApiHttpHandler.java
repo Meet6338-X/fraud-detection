@@ -154,10 +154,28 @@ public class ApiHttpHandler implements HttpHandler {
         String body = readRequestBody(exchange);
         Transaction txn = jsonHelper.fromJson(body, Transaction.class);
 
+        long startTime = System.currentTimeMillis();
         FraudDecision decision = ruleEngine.analyze(txn);
+        long processingTime = System.currentTimeMillis() - startTime;
 
+        // Build response with flat fields for frontend compatibility
         Map<String, Object> response = new HashMap<>();
-        response.put("decision", decision);
+        response.put("transactionId", txn.getTransactionId());
+        response.put("riskScore", decision.getRiskScore());
+        
+        // Convert boolean fraud to decision string
+        String decisionStr;
+        if (decision.getRiskScore() >= 75) {
+            decisionStr = "BLOCK";
+        } else if (decision.getRiskScore() >= 50) {
+            decisionStr = "REVIEW";
+        } else {
+            decisionStr = "APPROVE";
+        }
+        response.put("decision", decisionStr);
+        response.put("processingTimeMs", processingTime);
+        response.put("triggeredRules", decision.getTriggeredRules());
+        response.put("reasons", decision.getReasons());
         response.put("timestamp", Instant.now().toString());
 
         sendJsonResponse(exchange, 200, response);

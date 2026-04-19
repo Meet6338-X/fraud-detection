@@ -41,40 +41,67 @@ public class RuleEngine {
         List<String> triggeredRules = new ArrayList<>();
         double riskScore = 0;
 
-        // Amount rule
+        // Amount rule - flag amounts over $5000 as high risk
         if (enabledRules.getOrDefault("amount_rule", true)) {
-            if (transaction.getAmount() > ruleThresholds.getOrDefault("amount_rule", 1000)) {
-                riskScore += 30;
-                reasons.add(
-                        "Transaction amount $" + String.format("%.2f", transaction.getAmount()) + " exceeds threshold");
+            double amount = transaction.getAmount();
+            if (amount > 10000) {
+                riskScore += 60;
+                reasons.add("Critically high transaction amount: $" + String.format("%.2f", amount));
+                triggeredRules.add("amount_rule");
+            } else if (amount > 5000) {
+                riskScore += 40;
+                reasons.add("Very high transaction amount: $" + String.format("%.2f", amount));
+                triggeredRules.add("amount_rule");
+            } else if (amount > 2000) {
+                riskScore += 15;
+                reasons.add("High transaction amount: $" + String.format("%.2f", amount));
                 triggeredRules.add("amount_rule");
             }
         }
 
-        // Velocity rule (random for demo)
-        if (enabledRules.getOrDefault("velocity_rule", true)) {
-            if (Math.random() < 0.1) { // 10% chance of triggering
-                riskScore += 25;
-                reasons.add("High transaction velocity detected");
-                triggeredRules.add("velocity_rule");
-            }
-        }
-
-        // Location rule
+        // Location rule - flag unusual countries
         if (enabledRules.getOrDefault("location_rule", true)) {
-            if (Math.random() < 0.05) { // 5% chance of triggering
-                riskScore += 35;
-                reasons.add("Unusual location detected");
-                triggeredRules.add("location_rule");
+            Location location = transaction.getLocation();
+            if (location != null && location.getCountry() != null) {
+                String country = location.getCountry().toUpperCase();
+                // Flag high-risk countries
+                if (country.equals("RU") || country.equals("CN") || country.equals("KP") || 
+                    country.equals("IR") || country.equals("SY") || country.equals("BY")) {
+                    riskScore += 35;
+                    reasons.add("High-risk country: " + country);
+                    triggeredRules.add("location_rule");
+                } else if (country.equals("IN") || country.equals("BR") || country.equals("NG")) {
+                    riskScore += 15;
+                    reasons.add("Moderate-risk country: " + country);
+                    triggeredRules.add("location_rule");
+                }
             }
         }
 
-        // New account rule
+        // New account rule - flag unknown users (simplified check)
         if (enabledRules.getOrDefault("new_account_rule", true)) {
-            if (Math.random() < 0.08) { // 8% chance of triggering
-                riskScore += 20;
-                reasons.add("New account with high-risk transaction");
-                triggeredRules.add("new_account_rule");
+            String userId = transaction.getUserId();
+            if (userId != null) {
+                // Check for suspicious user IDs
+                if (userId.toLowerCase().contains("unknown") || 
+                    userId.toLowerCase().contains("test") ||
+                    userId.toLowerCase().contains("guest")) {
+                    riskScore += 20;
+                    reasons.add("Unknown or suspicious user ID: " + userId);
+                    triggeredRules.add("new_account_rule");
+                }
+            }
+        }
+
+        // Velocity rule - flag multiple rapid transactions (simplified)
+        if (enabledRules.getOrDefault("velocity_rule", true)) {
+            // In a real system, this would check transaction history
+            // For now, flag transactions from certain merchants
+            String merchant = transaction.getMerchantId();
+            if (merchant != null && merchant.toLowerCase().contains("test")) {
+                riskScore += 15;
+                reasons.add("Test merchant detected");
+                triggeredRules.add("velocity_rule");
             }
         }
 

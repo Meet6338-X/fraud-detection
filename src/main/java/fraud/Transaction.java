@@ -72,4 +72,14 @@ public class Transaction {
     public void setLocation(Location location) {
         this.location = location;
     }
+
+    public void setCity(String city) {
+        if (this.location == null) this.location = new Location();
+        this.location.setCity(city);
+    }
+
+    public void setCountry(String country) {
+        if (this.location == null) this.location = new Location();
+        this.location.setCountry(country);
+    }
 }

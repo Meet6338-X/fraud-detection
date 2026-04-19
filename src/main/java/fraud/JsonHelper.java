@@ -5,6 +5,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -171,11 +174,11 @@ public class JsonHelper {
 
             if (json.startsWith("{") && json.endsWith("}")) {
                 json = json.substring(1, json.length() - 1);
-                Map<String, String> map = parseJsonObject(json);
+                Map<String, Object> map = parseJsonObject(json);
 
-                for (Map.Entry<String, String> entry : map.entrySet()) {
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
                     String fieldName = entry.getKey();
-                    String value = entry.getValue();
+                    Object value = entry.getValue();
 
                     setFieldValue(obj, fieldName, value);
                 }
@@ -187,11 +190,13 @@ public class JsonHelper {
         }
     }
 
-    private static Map<String, String> parseJsonObject(String json) {
-        Map<String, String> map = new LinkedHashMap<>();
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseJsonObject(String json) {
+        Map<String, Object> map = new LinkedHashMap<>();
         StringBuilder sb = new StringBuilder();
         String currentKey = null;
         boolean inString = false;
+        boolean readingKey = true;
         int braceCount = 0;
         int bracketCount = 0;
 
@@ -200,41 +205,72 @@ public class JsonHelper {
 
             if (c == '"' && (i == 0 || json.charAt(i - 1) != '\\')) {
                 inString = !inString;
-                continue;
+                continue; // Skip the boundary quotes
             }
 
             if (!inString) {
-                if (c == '{')
-                    braceCount++;
-                if (c == '}')
-                    braceCount--;
-                if (c == '[')
-                    bracketCount++;
-                if (c == ']')
-                    bracketCount--;
+                if (c == '{') braceCount++;
+                if (c == '}') braceCount--;
+                if (c == '[') bracketCount++;
+                if (c == ']') bracketCount--;
             }
 
-            if (inString || braceCount > 0 || bracketCount > 0 || (c != ':' && c != ',')) {
-                sb.append(c);
-            } else if (c == ':') {
-                currentKey = sb.toString().trim();
-                sb = new StringBuilder();
-            } else if (c == ',') {
-                String value = sb.toString().trim();
-                if (currentKey != null && !currentKey.isEmpty()) {
-                    map.put(currentKey, value);
+            if (readingKey) {
+                if (!inString && c == ':') {
+                    currentKey = sb.toString().trim();
+                    sb = new StringBuilder();
+                    readingKey = false;
+                } else {
+                    if (inString || (c != ' ' && c != '\n' && c != '\r' && c != '\t')) {
+                        sb.append(c);
+                    }
                 }
-                currentKey = null;
-                sb = new StringBuilder();
+            } else {
+                if (!inString && braceCount == 0 && bracketCount == 0 && (c == ',' || c == '}' || i == json.length() - 1)) {
+                    if (c != ',' && c != '}') sb.append(c);
+                    String valueStr = sb.toString().trim();
+                    if (!valueStr.isEmpty() || c == ',' || c == '}') {
+                        Object value = parseValue(valueStr);
+                        if (currentKey != null && !currentKey.isEmpty()) {
+                            map.put(currentKey, value);
+                        }
+                        sb = new StringBuilder();
+                        readingKey = true;
+                        currentKey = null;
+                    }
+                } else {
+                    if (inString || braceCount > 0 || bracketCount > 0 || (c != ' ' && c != '\n' && c != '\r' && c != '\t')) {
+                        sb.append(c);
+                    }
+                }
             }
-        }
-
-        if (currentKey != null && !currentKey.isEmpty()) {
-            String value = sb.toString().trim();
-            map.put(currentKey, value);
         }
 
         return map;
+    }
+
+    private static Object parseValue(String value) {
+        value = value.trim();
+        if (value.isEmpty() || value.equals("null")) {
+            return null;
+        }
+        if (value.equals("true") || value.equals("false")) {
+            return Boolean.parseBoolean(value);
+        }
+        if (value.startsWith("{") && value.endsWith("}")) {
+            return parseJsonObject(value.substring(1, value.length() - 1));
+        }
+        if (value.startsWith("\"") && value.endsWith("\"")) {
+            return value.substring(1, value.length() - 1);
+        }
+        try {
+            if (value.contains(".")) {
+                return Double.parseDouble(value);
+            }
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return value;
+        }
     }
 
     private static Object getFieldValue(Object obj, String fieldName) {
@@ -248,7 +284,7 @@ public class JsonHelper {
     }
 
     @SuppressWarnings("unchecked")
-    private static void setFieldValue(Object obj, String fieldName, String value) {
+    private static void setFieldValue(Object obj, String fieldName, Object value) {
         try {
             String setterName = "set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
 
@@ -265,22 +301,91 @@ public class JsonHelper {
         }
     }
 
-    private static Object convertValue(String value, Class<?> targetType) {
-        if (targetType == String.class) {
-            return unescapeString(value);
+    @SuppressWarnings("unchecked")
+    private static Object convertValue(Object value, Class<?> targetType) {
+        if (value == null) {
+            return null;
         }
-        if (targetType == Integer.class || targetType == int.class) {
-            return Integer.parseInt(value);
+        
+        // If the value is already the target type, return it
+        if (targetType.isInstance(value)) {
+            return value;
         }
-        if (targetType == Long.class || targetType == long.class) {
-            return Long.parseLong(value);
+        
+        // Handle nested objects (Map -> custom object)
+        if (value instanceof Map && !targetType.isPrimitive() && targetType != String.class) {
+            try {
+                Object nestedObj = targetType.getDeclaredConstructor().newInstance();
+                for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
+                    setFieldValue(nestedObj, entry.getKey(), entry.getValue());
+                }
+                return nestedObj;
+            } catch (Exception e) {
+                // Fall through to string conversion
+            }
         }
-        if (targetType == Double.class || targetType == double.class) {
-            return Double.parseDouble(value);
+        
+        // Handle String conversion
+        if (value instanceof String) {
+            String strValue = (String) value;
+            if (targetType == String.class) {
+                return unescapeString(strValue);
+            }
+            if (targetType == Integer.class || targetType == int.class) {
+                return Integer.parseInt(strValue);
+            }
+            if (targetType == Long.class || targetType == long.class) {
+                return Long.parseLong(strValue);
+            }
+            if (targetType == Double.class || targetType == double.class) {
+                return Double.parseDouble(strValue);
+            }
+            if (targetType == Float.class || targetType == float.class) {
+                return Float.parseFloat(strValue);
+            }
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                return Boolean.parseBoolean(strValue);
+            }
+            if (targetType == Instant.class) {
+                try {
+                    return Instant.parse(strValue);
+                } catch (Exception e) {
+                    try {
+                        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a", Locale.ENGLISH);
+                        return LocalDateTime.parse(strValue, dtf).atZone(java.time.ZoneId.systemDefault()).toInstant();
+                    } catch (Exception e2) {
+                        return null;
+                    }
+                }
+            }
+            return strValue;
         }
-        if (targetType == Boolean.class || targetType == boolean.class) {
-            return Boolean.parseBoolean(value);
+        
+        // Handle numbers
+        if (value instanceof Number) {
+            Number num = (Number) value;
+            if (targetType == Integer.class || targetType == int.class) {
+                return num.intValue();
+            }
+            if (targetType == Long.class || targetType == long.class) {
+                return num.longValue();
+            }
+            if (targetType == Double.class || targetType == double.class) {
+                return num.doubleValue();
+            }
+            if (targetType == Float.class || targetType == float.class) {
+                return num.floatValue();
+            }
         }
+        
+        // Handle Boolean
+        if (value instanceof Boolean) {
+            Boolean boolValue = (Boolean) value;
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                return boolValue;
+            }
+        }
+        
         return value;
     }
 
